@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #facc15; /* Tailwind yellow-400 */
+  --color-accent: #ff4d4f; /* Antd Red */
+  --color-bg-dark: #0f111a; /* Very dark navy */
+  --color-bg-panel: #1a1d2e; /* Panel navy */
+  --color-bg-card: #23273d; /* Card navy */
+  --color-text-main: #ffffff;
+  --color-text-muted: #8b92b2;
+}
+
+:root {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1a1d2e 0%, #0f111a 100%);
+  background-attachment: fixed;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #23273d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8b92b2;
+}
+
+/* Antd overrides for mobile */
+.ant-modal-content {
+  background-color: var(--color-bg-panel) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.ant-modal-header {
+  background-color: transparent !important;
+}
+.ant-modal-title {
+  color: #fff !important;
+}
+
+/* Podium Styles */
+.podium-step {
+  transition: transform 0.3s ease;
+}
+.podium-step:hover {
+  transform: translateY(-5px);
+}
