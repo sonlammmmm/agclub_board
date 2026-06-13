@@ -262,8 +262,8 @@ export default function LeaderboardPage() {
   ];
 
   return (
-    <div className="animate-fade-in h-screen flex flex-col bg-[#0f111a] overflow-hidden -mx-4 -mt-6">
-      <div className="pt-8 px-4 pb-2 shrink-0 relative z-20 bg-[#0f111a]">
+    <div className="animate-fade-in pb-10">
+      <div className="sticky top-16 z-30 bg-[#0f111a]/95 backdrop-blur-md pt-4 pb-4 -mx-4 px-4 border-b border-white/5 shadow-xl mb-6">
         <div className="flex bg-[#1a1d2e] rounded-full p-1 border border-white/5 shadow-lg max-w-sm mx-auto">
           {tabItems.map(tab => (
             <div
@@ -277,7 +277,7 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+      <div className="relative">
         {renderLeaderboard()}
       </div>
     </div>
