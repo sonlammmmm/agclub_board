@@ -39,7 +39,10 @@ export default function LeaderboardPage() {
       const recentSession = sessions[0];
       if (!recentSession) return { stats: [], subtitle: 'Chưa có bàn chơi nào.' };
       currentSessions = [recentSession];
-      subtitle = `Bàn ngày ${new Date(recentSession.date).toLocaleDateString('vi-VN')}`;
+      
+      const timeStr = new Date(recentSession.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = new Date(recentSession.created_at).toLocaleDateString('vi-VN');
+      subtitle = `Bàn: ${timeStr} - ${dateStr}`;
     } else if (activeTab === 'current-season') {
       if (!activeSeason) return { stats: [], subtitle: 'Không có Season nào đang chạy.' };
       currentSessions = sessions.filter(s => s.season_id === activeSeason.id);
@@ -133,6 +136,11 @@ export default function LeaderboardPage() {
     const ringColor = isFirst ? 'ring-[#ff8c42]' : rank === 2 ? 'ring-[#648eff]' : 'ring-[#ffc837]';
     const bgAvatar = isFirst ? 'ffd8b1' : rank === 2 ? 'b1c8ff' : 'ffebb1';
 
+    const isUp = player.rankChange > 0;
+    const isDown = player.rankChange < 0;
+    const isNew = !player.hasPrevious;
+    const rankStr = Math.abs(player.rankChange).toString();
+
     return (
       <div className={`flex flex-col items-center justify-end flex-1 px-1 relative ${isFirst ? '-mt-10 z-10' : 'z-0'}`}>
         <div className="flex flex-col items-center mb-2">
@@ -146,11 +154,23 @@ export default function LeaderboardPage() {
           </div>
           <div className="text-center z-10">
             <div className="font-bold text-white text-[13px] md:text-sm truncate max-w-[90px]">{player.name}</div>
-            <div className="bg-white/10 backdrop-blur-md px-2 py-0.5 rounded-full mt-1 border border-white/5">
-              <span className={`font-bold text-[10px] ${player.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="inline-flex items-center justify-center bg-white/10 backdrop-blur-md px-2 py-1 rounded-full mt-1 border border-white/5">
+              <span className={`font-bold text-[10px] leading-none ${player.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {player.totalProfit > 0 ? '+' : ''}{player.totalProfit.toLocaleString()}
               </span>
             </div>
+            {activeTab !== 'recent-table' && (
+              <div className={`mt-1.5 mx-auto flex items-center justify-center gap-0.5 px-1.5 py-0.5 w-max rounded-md font-bold text-[9px] ${
+                isNew ? 'bg-blue-500/20 text-blue-400' :
+                isUp ? 'bg-green-500/20 text-green-400' : 
+                isDown ? 'bg-red-500/20 text-red-400' : 
+                'bg-gray-500/20 text-gray-400'
+              }`}>
+                {isNew ? 'NEW' : isUp ? `${rankStr} ` : isDown ? `${rankStr} ` : '-'}
+                {isUp && <CaretUpFilled className="text-[8px]" />}
+                {isDown && <CaretDownFilled className="text-[8px]" />}
+              </div>
+            )}
           </div>
         </div>
 
@@ -171,7 +191,7 @@ export default function LeaderboardPage() {
     const { stats: leaderboard, subtitle } = getLeaderboardData();
 
     return (
-      <div className="mt-2 flex flex-col h-full">
+      <div className="mt-2">
         <div className="text-center mb-10 z-10 relative">
           <div className="text-gray-400 text-xs font-bold uppercase tracking-widest">{subtitle}</div>
         </div>
@@ -179,7 +199,7 @@ export default function LeaderboardPage() {
         {leaderboard.length === 0 ? (
           <div className="text-center py-10 text-gray-500">Chưa có dữ liệu thành tích.</div>
         ) : (
-          <div className="relative flex-1 flex flex-col">
+          <div className="relative">
             {/* Podium Area */}
             <div className="flex items-end justify-center w-full max-w-md mx-auto px-4 z-0">
               <PodiumItem player={leaderboard[1]} rank={2} />
@@ -188,7 +208,7 @@ export default function LeaderboardPage() {
             </div>
 
             {/* List Area overlapping the podium bottom slightly */}
-            <div className="bg-[#23273d] flex-1 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] mt-[-20px] pt-8 px-4 pb-20 z-20 relative min-h-[400px]">
+            <div className="bg-[#23273d] rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] mt-[-20px] pt-8 px-4 pb-32 z-20 relative min-h-[70vh]">
 
               {/* Little notch handle */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1 bg-white/10 rounded-full"></div>
@@ -221,7 +241,9 @@ export default function LeaderboardPage() {
 
                       <div className="flex-1">
                         <div className="font-bold text-white text-base">{player.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{player.totalProfit.toLocaleString()} chips</div>
+                        <div className={`text-xs mt-0.5 font-bold ${player.totalProfit > 0 ? 'text-green-400' : player.totalProfit < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                          {player.totalProfit > 0 ? '+' : ''}{player.totalProfit.toLocaleString()} chips
+                        </div>
                       </div>
 
                       <div className="ml-2 flex items-center justify-end">
@@ -263,8 +285,8 @@ export default function LeaderboardPage() {
 
   return (
     <div className="animate-fade-in pb-10">
-      <div className="sticky top-16 z-30 bg-[#0f111a]/95 backdrop-blur-md pt-4 pb-4 -mx-4 px-4 border-b border-white/5 shadow-xl mb-6">
-        <div className="flex bg-[#1a1d2e] rounded-full p-1 border border-white/5 shadow-lg max-w-sm mx-auto">
+      <div className="sticky top-16 z-30 py-2 -mx-4 px-4 mb-[12px]" style={{ background: 'radial-gradient(circle at top, #1a1d2e 0%, #0f111a 100%) fixed' }}>
+        <div className="flex bg-black/20 rounded-full p-1 border border-white/5 shadow-lg max-w-sm mx-auto">
           {tabItems.map(tab => (
             <div
               key={tab.key}

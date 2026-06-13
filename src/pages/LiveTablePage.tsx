@@ -364,7 +364,7 @@ export default function LiveTablePage() {
             <h2 className="text-xl md:text-2xl font-black text-white tracking-wider uppercase m-0">
               {isCompleted ? 'Chi tiết bàn (Đã khóa)' : 'Live Table'}
             </h2>
-            <p className="text-gray-400 text-xs md:text-sm mt-1">{new Date(selectedSession.date).toLocaleDateString('vi-VN')} {isCompleted && <Tag color="default" className="ml-2">Đã kết thúc</Tag>}</p>
+            <p className="text-gray-400 text-xs md:text-sm mt-1">{new Date(selectedSession.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSession.created_at).toLocaleDateString('vi-VN')} {isCompleted && <Tag color="default" className="ml-2">Đã kết thúc</Tag>}</p>
           </div>
         </div>
 
@@ -561,7 +561,7 @@ export default function LiveTablePage() {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <div className="font-bold text-white text-lg">Bàn ngày {new Date(session.date).toLocaleDateString('vi-VN')}</div>
+                      <div className="font-bold text-white text-lg">Bàn: {new Date(session.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(session.created_at).toLocaleDateString('vi-VN')}</div>
                       <div className="text-xs text-gray-400 mt-1">
                         {session.status === 'active' ? <Tag color="warning">Đang chơi (Live)</Tag> : <Tag color="default">Đã kết thúc</Tag>}
                       </div>
