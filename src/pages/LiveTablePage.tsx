@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Modal, Form, Input, InputNumber, message, Select, Spin, Tag, List, Typography } from 'antd';
-import { PlusOutlined, SaveOutlined, DollarOutlined, PlaySquareOutlined, TrophyOutlined, LeftOutlined, HistoryOutlined } from '@ant-design/icons';
+import { PlusOutlined, DollarOutlined, TrophyOutlined, LeftOutlined, HistoryOutlined } from '@ant-design/icons';
 import { supabase } from '../lib/supabase';
 
 const { Text } = Typography;

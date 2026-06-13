@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Tabs, Spin, Tag } from 'antd';
-import { CrownFilled, CaretUpFilled, CaretDownFilled, MinusOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
+import { CrownFilled, CaretUpFilled, CaretDownFilled } from '@ant-design/icons';
 import { supabase } from '../lib/supabase';
 
 export default function LeaderboardPage() {
@@ -130,7 +130,6 @@ export default function LeaderboardPage() {
     // Colors matching the design
     const colorFrom = isFirst ? 'from-[#ff8c42]' : rank === 2 ? 'from-[#648eff]' : 'from-[#ffc837]';
     const colorTo = isFirst ? 'to-[#ff8c42]/0' : rank === 2 ? 'to-[#648eff]/0' : 'to-[#ffc837]/0';
-    const borderColor = isFirst ? '#ff8c42' : rank === 2 ? '#648eff' : '#ffc837';
     const ringColor = isFirst ? 'ring-[#ff8c42]' : rank === 2 ? 'ring-[#648eff]' : 'ring-[#ffc837]';
     const bgAvatar = isFirst ? 'ffd8b1' : rank === 2 ? 'b1c8ff' : 'ffebb1';
 
