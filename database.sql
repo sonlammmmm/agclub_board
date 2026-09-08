@@ -22,8 +22,13 @@ CREATE TABLE sessions (
     season_id UUID REFERENCES seasons(id) ON DELETE SET NULL,
     date DATE DEFAULT CURRENT_DATE,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed')),
+    game_type TEXT NOT NULL DEFAULT 'cash' CHECK (game_type IN ('cash', 'tournament')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Tournament mode is maintained as an additive production migration so existing
+-- installations can be upgraded without recreating this baseline schema.
+-- Apply: supabase/migrations/20260908173000_tournament_mode.sql
 
 -- Bảng lịch sử chip của người chơi trong 1 buổi chơi
 CREATE TABLE session_players (

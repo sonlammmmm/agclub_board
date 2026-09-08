@@ -1,6 +1,6 @@
 import { Layout } from 'antd';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { TrophyOutlined, PlaySquareOutlined, TeamOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, TrophyOutlined, PlaySquareOutlined, TeamOutlined } from '@ant-design/icons';
 
 const { Header, Content } = Layout;
 
@@ -17,6 +17,11 @@ export default function AppLayout() {
       key: '/live-table',
       icon: <PlaySquareOutlined className="text-xl" />,
       label: 'Bàn chơi',
+    },
+    {
+      key: '/tournament',
+      icon: <ClockCircleOutlined className="text-xl" />,
+      label: 'Giải đấu',
     },
     {
       key: '/players',
@@ -37,7 +42,7 @@ export default function AppLayout() {
         </div>
         
         {/* Desktop Menu */}
-        <div className="hidden md:flex gap-6">
+        <nav className="hidden md:flex gap-1" aria-label="Điều hướng chính">
           {menuItems.map(item => {
             const isActive = location.pathname === item.key;
             return (
@@ -45,14 +50,14 @@ export default function AppLayout() {
                   key={item.key}
                   to={item.key}
                   aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${isActive ? 'bg-white/10 text-yellow-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                className={`flex items-center gap-2 rounded-full px-2 py-1 text-sm transition-all ${isActive ? 'bg-white/10 text-yellow-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {item.icon}
                 <span className="font-semibold">{item.label}</span>
               </Link>
             )
           })}
-        </div>
+        </nav>
       </Header>
 
       <Content className="p-3 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full">
@@ -60,7 +65,7 @@ export default function AppLayout() {
       </Content>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#1a1d2e] border-t border-white/5 z-50 flex items-center justify-around px-2 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#1a1d2e] border-t border-white/5 z-50 flex items-center justify-around px-1 pb-safe" aria-label="Điều hướng chính">
         {menuItems.map(item => {
           const isActive = location.pathname === item.key;
           return (
@@ -77,7 +82,7 @@ export default function AppLayout() {
             </Link>
           )
         })}
-      </div>
+      </nav>
     </Layout>
   );
 }

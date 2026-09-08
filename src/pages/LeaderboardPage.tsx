@@ -15,6 +15,14 @@ interface LeaderboardStat {
   hasPrevious: boolean;
 }
 
+async function fetchCashSessions() {
+  const response = await supabase.from('sessions').select('*').eq('game_type', 'cash').order('created_at', { ascending: false });
+  if (response.error && /game_type|schema cache/i.test(response.error.message)) {
+    return supabase.from('sessions').select('*').order('created_at', { ascending: false });
+  }
+  return response;
+}
+
 export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +39,7 @@ export default function LeaderboardPage() {
     try {
       const [playersResult, sessionsResult, sessionPlayersResult, seasonResult] = await Promise.all([
         supabase.from('players').select('*'),
-        supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+        fetchCashSessions(),
         supabase.from('session_players').select('*'),
         supabase.from('seasons').select('*').eq('is_active', true).limit(1).maybeSingle(),
       ]);
@@ -40,7 +48,7 @@ export default function LeaderboardPage() {
       if (queryError) throw queryError;
 
       setPlayers((playersResult.data || []) as Player[]);
-      setSessions((sessionsResult.data || []) as Session[]);
+      setSessions(((sessionsResult.data || []) as Session[]).filter(session => session.game_type !== 'tournament'));
       setSessionPlayers((sessionPlayersResult.data || []) as SessionPlayer[]);
       setActiveSeason((seasonResult.data || null) as Season | null);
     } catch (queryError) {

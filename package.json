@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test tests/asyncMutation.test.mjs"
+    "test": "node --experimental-strip-types --test tests/asyncMutation.test.mjs",
+    "test:db": "node tests/tournamentDatabase.integration.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "^6.2.5",

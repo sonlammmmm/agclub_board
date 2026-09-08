@@ -4,11 +4,14 @@ import type {
   AddSessionPlayerInput,
   CreateSeasonInput,
   CreateTableInput,
+  CreateTournamentInput,
+  ControlTournamentClockInput,
   MutationResult,
   Player,
   Season,
   Session,
   SessionPlayer,
+  Tournament,
 } from '../types/poker';
 
 export const createRequestId = () => crypto.randomUUID();
@@ -89,3 +92,34 @@ export const completeSeason = (input: { seasonId: string; requestId: string }) =
     p_request_id: input.requestId,
   });
 
+export const createTournament = (input: CreateTournamentInput) =>
+  callMutation<Tournament>('create_tournament', {
+    p_season_id: input.seasonId,
+    p_name: input.name.trim(),
+    p_player_ids: input.playerIds,
+    p_starting_stack: input.startingStack,
+    p_levels: input.levels.map((level, position) => ({
+      position,
+      kind: level.kind,
+      duration_seconds: level.durationSeconds,
+      small_blind: level.kind === 'level' ? level.smallBlind ?? 0 : null,
+      big_blind: level.kind === 'level' ? level.bigBlind ?? 0 : null,
+      ante: level.kind === 'level' ? level.ante ?? 0 : 0,
+    })),
+    p_request_id: input.requestId,
+  });
+
+export const controlTournamentClock = (input: ControlTournamentClockInput) =>
+  callMutation<Tournament>('control_tournament_clock', {
+    p_tournament_id: input.tournamentId,
+    p_action: input.action,
+    p_expected_version: input.expectedVersion,
+    p_request_id: input.requestId,
+  });
+
+export const completeTournament = (input: { tournamentId: string; expectedVersion: number; requestId: string }) =>
+  callMutation<Tournament>('complete_tournament', {
+    p_tournament_id: input.tournamentId,
+    p_expected_version: input.expectedVersion,
+    p_request_id: input.requestId,
+  });

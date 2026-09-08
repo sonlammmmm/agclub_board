@@ -67,18 +67,29 @@ export default function LiveTablePage() {
   }, []);
 
   const fetchSessionsList = useCallback(async (seasonId: string) => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('sessions')
       .select('*')
       .eq('season_id', seasonId)
+      .eq('game_type', 'cash')
       .order('created_at', { ascending: false });
+
+    if (error && /game_type|schema cache/i.test(error.message)) {
+      const legacyResponse = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('season_id', seasonId)
+        .order('created_at', { ascending: false });
+      data = legacyResponse.data;
+      error = legacyResponse.error;
+    }
 
     if (error) {
       setDataError('Không thể tải danh sách bàn chơi. Vui lòng thử lại.');
       return;
     }
 
-    const typedSessions = (data || []) as Session[];
+    const typedSessions = ((data || []) as Session[]).filter(session => session.game_type !== 'tournament');
     setSessionsList(typedSessions);
     setSelectedSession(current => current ? typedSessions.find(session => session.id === current.id) || null : current);
   }, []);

@@ -5,6 +5,7 @@ import AppLayout from './components/AppLayout';
 const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const LiveTablePage = lazy(() => import('./pages/LiveTablePage'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
+const TournamentPage = lazy(() => import('./pages/TournamentPage'));
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -80,6 +81,7 @@ function App() {
                 <Route index element={<LeaderboardPage />} />
                 <Route path="live-table" element={<LiveTablePage />} />
                 <Route path="players" element={<PlayersPage />} />
+                <Route path="tournament" element={<TournamentPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
