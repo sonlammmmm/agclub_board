@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createAsyncMutationGuard } from '../src/lib/asyncMutation.ts';
 import './tournamentClock.test.mjs';
 import './tournamentMode.test.mjs';
+import './tournamentPresets.test.mjs';
 
 test('duplicate calls with the same key execute only the first operation', async () => {
   const guard = createAsyncMutationGuard();

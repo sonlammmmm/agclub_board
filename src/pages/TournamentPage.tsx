@@ -41,6 +41,11 @@ import {
   shouldAnnounceTournamentClock,
   type DerivedTournamentClock,
 } from '../lib/tournamentClock';
+import {
+  getTournamentPreset,
+  tournamentPresets,
+  type TournamentPresetId,
+} from '../lib/tournamentPresets';
 import type {
   Player,
   Season,
@@ -69,8 +74,8 @@ interface EditableLevel {
 
 const newLevel = (
   kind: TournamentLevelKind,
-  smallBlind = 25,
-  bigBlind = 50,
+  smallBlind = 100,
+  bigBlind = 200,
   durationMinutes = kind === 'break' ? 10 : 15,
 ): EditableLevel => ({
   key: createRequestId(),
@@ -78,16 +83,27 @@ const newLevel = (
   durationMinutes,
   smallBlind: kind === 'level' ? smallBlind : 0,
   bigBlind: kind === 'level' ? bigBlind : 0,
-  ante: 0,
+  ante: kind === 'level' ? bigBlind : 0,
 });
 
-const defaultSchedule = () => [
-  newLevel('level', 25, 50),
-  newLevel('level', 50, 100),
-  newLevel('level', 75, 150),
-  newLevel('break'),
-  newLevel('level', 100, 200),
-];
+const toEditableSchedule = (presetId: TournamentPresetId): EditableLevel[] =>
+  getTournamentPreset(presetId).levels.map(level => ({
+    key: createRequestId(),
+    kind: level.kind,
+    durationMinutes: level.durationSeconds / 60,
+    smallBlind: level.smallBlind ?? 0,
+    bigBlind: level.bigBlind ?? 0,
+    ante: level.ante ?? 0,
+  }));
+
+const defaultSchedule = () => toEditableSchedule('standard');
+
+const formatScheduledDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) return `${remainingMinutes} phút`;
+  return remainingMinutes === 0 ? `${hours} giờ` : `${hours} giờ ${remainingMinutes} phút`;
+};
 
 const statusLabel: Record<Tournament['clock_status'], string> = {
   ready: 'Sẵn sàng',
@@ -115,6 +131,8 @@ export default function TournamentPage() {
   const [levels, setLevels] = useState<TournamentLevel[]>([]);
   const [tournamentPlayers, setTournamentPlayers] = useState<TournamentPlayer[]>([]);
   const [schedule, setSchedule] = useState<EditableLevel[]>(defaultSchedule);
+  const [selectedPreset, setSelectedPreset] = useState<TournamentPresetId | null>('standard');
+  const [presetAnnouncement, setPresetAnnouncement] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [confirmation, setConfirmation] = useState<'reset' | 'complete' | null>(null);
   const [announcement, setAnnouncement] = useState('');
@@ -245,7 +263,26 @@ export default function TournamentPage() {
   }, [clock, levels]);
 
   const updateLevel = (key: string, values: Partial<EditableLevel>) => {
+    setSelectedPreset(null);
     setSchedule(current => current.map(level => level.key === key ? { ...level, ...values } : level));
+  };
+
+  const applyPreset = (presetId: TournamentPresetId) => {
+    const preset = getTournamentPreset(presetId);
+    setSchedule(toEditableSchedule(presetId));
+    setSelectedPreset(presetId);
+    form.setFieldsValue({ startingStack: preset.startingStack });
+    setPresetAnnouncement(`Đã áp dụng cấu trúc ${preset.name}, stack ${preset.startingStack.toLocaleString('vi-VN')} chip.`);
+  };
+
+  const addScheduleLevel = (kind: TournamentLevelKind) => {
+    setSelectedPreset(null);
+    setSchedule(current => [...current, newLevel(kind)]);
+  };
+
+  const removeScheduleLevel = (key: string) => {
+    setSelectedPreset(null);
+    setSchedule(current => current.filter(item => item.key !== key));
   };
 
   const handleCreate = async (values: SetupValues) => {
@@ -281,6 +318,7 @@ export default function TournamentPage() {
       message.success('Đã tạo giải đấu. Đồng hồ đang ở trạng thái sẵn sàng.');
       form.resetFields();
       setSchedule(defaultSchedule());
+      setSelectedPreset('standard');
       await fetchData();
     } catch {
       message.error('Không thể tạo giải đấu. Dữ liệu nhập vẫn được giữ để bạn thử lại.');
@@ -381,11 +419,50 @@ export default function TournamentPage() {
         {error && <Alert className="mb-5" type="error" showIcon message="Chưa thể mở Tournament" description={error} action={<Button onClick={() => void fetchData()}>Thử lại</Button>} />}
         {cashTableIsActive && <Alert className="mb-5" type="warning" showIcon message="Season đang có bàn cash hoạt động" description="Hãy chốt hoặc hủy bàn cash trước khi tạo Tournament." action={<Link to="/live-table">Mở bàn chơi</Link>} />}
 
+        <section className="mb-5 rounded-2xl border border-white/10 bg-[#1a1d2e] p-5 shadow-xl sm:p-6" aria-labelledby="tournament-presets-title">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h3 id="tournament-presets-title" className="m-0 text-lg font-bold text-white">Thiết lập nhanh</h3>
+              <p className="m-0 mt-1 text-sm text-gray-400">Chọn nhịp thi đấu, hệ thống tự tạo stack, blind, Big Blind Ante và giờ nghỉ.</p>
+            </div>
+            {selectedPreset === null && <Tag color="gold" className="m-0">Lịch đang tùy chỉnh</Tag>}
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {tournamentPresets.map(preset => {
+              const selected = selectedPreset === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  aria-pressed={selected}
+                  disabled={creating}
+                  onClick={() => applyPreset(preset.id)}
+                  className={`min-h-36 rounded-xl border p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 ${selected ? 'border-yellow-400 bg-yellow-400/10' : 'border-white/10 bg-[#111420] hover:border-white/25 hover:bg-white/[0.04]'}`}
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="text-base font-black text-white">{preset.name}</span>
+                    {selected && <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Đã chọn</span>}
+                  </span>
+                  <span className="mt-1 block min-h-10 text-xs leading-5 text-gray-400">{preset.summary}</span>
+                  <span className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-300">
+                    <span>{preset.startingStack.toLocaleString('vi-VN')} chip</span>
+                    <span>{preset.levelMinutes} phút/mức</span>
+                    <span>{preset.blindLevelCount} mức blind</span>
+                    <span>Khoảng {formatScheduledDuration(preset.scheduledMinutes)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="sr-only" aria-live="polite" aria-atomic="true">{presetAnnouncement}</div>
+        </section>
+
         <Form<SetupValues>
           form={form}
           layout="vertical"
           requiredMark={false}
-          initialValues={{ startingStack: 10000 }}
+          disabled={creating}
+          initialValues={{ startingStack: getTournamentPreset('standard').startingStack }}
           onFinish={handleCreate}
           className="grid gap-5 lg:grid-cols-[0.85fr_1.15fr]"
         >
@@ -405,10 +482,10 @@ export default function TournamentPage() {
 
           <div className="min-w-0 rounded-2xl border border-white/10 bg-[#1a1d2e] p-5 shadow-xl sm:p-6">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div><h3 className="m-0 text-lg font-bold text-white">Lịch blind</h3><p className="m-0 mt-1 text-xs text-gray-500">Thời lượng tính theo phút</p></div>
+              <div><h3 className="m-0 text-lg font-bold text-white">Lịch blind</h3><p className="m-0 mt-1 text-xs text-gray-500">Thời lượng theo phút · BBA mặc định bằng Big Blind</p></div>
               <div className="flex gap-2">
-                <Button className="min-h-11" icon={<PlusOutlined />} onClick={() => setSchedule(current => [...current, newLevel('level')])}>Blind</Button>
-                <Button className="min-h-11" icon={<CoffeeOutlined />} onClick={() => setSchedule(current => [...current, newLevel('break')])}>Nghỉ</Button>
+                <Button className="min-h-11" icon={<PlusOutlined />} onClick={() => addScheduleLevel('level')}>Blind</Button>
+                <Button className="min-h-11" icon={<CoffeeOutlined />} onClick={() => addScheduleLevel('break')}>Nghỉ</Button>
               </div>
             </div>
 
@@ -420,12 +497,12 @@ export default function TournamentPage() {
                     <div className="flex min-w-0 gap-2">
                       <Select aria-label={`Loại mức ${index + 1}`} value={level.kind} className="w-28 shrink-0" onChange={(kind: TournamentLevelKind) => updateLevel(level.key, { kind })} options={[{ value: 'level', label: 'Blind' }, { value: 'break', label: 'Giải lao' }]} />
                       <InputNumber aria-label={`Thời lượng mức ${index + 1}`} min={1} precision={0} value={level.durationMinutes} onChange={value => updateLevel(level.key, { durationMinutes: Number(value) })} addonAfter="phút" className="min-w-0 flex-1" />
-                      <Button danger aria-label={`Xóa mức ${index + 1}`} className="min-h-8 min-w-10 shrink-0" icon={<DeleteOutlined />} disabled={schedule.length === 1} onClick={() => setSchedule(current => current.filter(item => item.key !== level.key))} />
+                      <Button danger aria-label={`Xóa mức ${index + 1}`} className="min-h-8 min-w-10 shrink-0" icon={<DeleteOutlined />} disabled={schedule.length === 1} onClick={() => removeScheduleLevel(level.key)} />
                     </div>
                     {level.kind === 'level' && <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
                       <InputNumber aria-label={`Small blind mức ${index + 1}`} min={1} precision={0} value={level.smallBlind} onChange={value => updateLevel(level.key, { smallBlind: Number(value) })} addonBefore="SB" className="min-w-0 w-full" />
                       <InputNumber aria-label={`Big blind mức ${index + 1}`} min={1} precision={0} value={level.bigBlind} onChange={value => updateLevel(level.key, { bigBlind: Number(value) })} addonBefore="BB" className="min-w-0 w-full" />
-                      <InputNumber aria-label={`Ante mức ${index + 1}`} min={0} precision={0} value={level.ante} onChange={value => updateLevel(level.key, { ante: Number(value) })} addonBefore="Ante" className="min-w-0 w-full" />
+                      <InputNumber aria-label={`Big blind ante mức ${index + 1}`} min={0} precision={0} value={level.ante} onChange={value => updateLevel(level.key, { ante: Number(value) })} addonBefore="BBA" className="min-w-0 w-full" />
                     </div>}
                   </div>
                 </fieldset>
