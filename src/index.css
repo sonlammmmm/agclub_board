@@ -17,11 +17,47 @@
   color-scheme: dark;
 }
 
+html {
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: 5rem;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background: radial-gradient(circle at top, #1a1d2e 0%, #0f111a 100%);
   background-attachment: fixed;
+}
+
+button,
+a,
+[role='button'],
+[role='switch'] {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role='button']:focus-visible,
+[role='switch']:focus-visible {
+  outline: 3px solid #facc15;
+  outline-offset: 3px;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom Scrollbar */

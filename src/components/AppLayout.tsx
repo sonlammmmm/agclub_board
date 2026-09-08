@@ -11,17 +11,17 @@ export default function AppLayout() {
     {
       key: '/',
       icon: <TrophyOutlined className="text-xl" />,
-      label: 'Leaderboard',
+      label: 'Xếp hạng',
     },
     {
       key: '/live-table',
       icon: <PlaySquareOutlined className="text-xl" />,
-      label: 'Live Table',
+      label: 'Bàn chơi',
     },
     {
       key: '/players',
       icon: <TeamOutlined className="text-xl" />,
-      label: 'Players',
+      label: 'Người chơi',
     },
   ];
 
@@ -41,9 +41,10 @@ export default function AppLayout() {
           {menuItems.map(item => {
             const isActive = location.pathname === item.key;
             return (
-              <Link 
-                key={item.key} 
-                to={item.key}
+                <Link
+                  key={item.key}
+                  to={item.key}
+                  aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all ${isActive ? 'bg-white/10 text-yellow-400' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
               >
                 {item.icon}
@@ -63,9 +64,10 @@ export default function AppLayout() {
         {menuItems.map(item => {
           const isActive = location.pathname === item.key;
           return (
-            <Link 
+            <Link
               key={item.key} 
               to={item.key}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-all ${isActive ? 'text-yellow-400' : 'text-gray-500'}`}
             >
               <div className={`p-1 rounded-xl ${isActive ? 'bg-yellow-400/10' : ''}`}>

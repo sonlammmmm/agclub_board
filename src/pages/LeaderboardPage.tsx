@@ -1,39 +1,64 @@
-import { useState, useEffect } from 'react';
-import { Spin } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Empty, Spin } from 'antd';
 import { CrownFilled, CaretUpFilled, CaretDownFilled } from '@ant-design/icons';
 import { supabase } from '../lib/supabase';
+import type { Player, Season, Session, SessionPlayer } from '../types/poker';
+
+interface LeaderboardStat {
+  id: string;
+  name: string;
+  totalProfit: number;
+  gamesPlayed: number;
+  rank: number;
+  rankChange: number;
+  profitPercent: number;
+  hasPrevious: boolean;
+}
 
 export default function LeaderboardPage() {
-  const [loading, setLoading] = useState(false);
-  const [players, setPlayers] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [sessionPlayers, setSessionPlayers] = useState<any[]>([]);
-  const [activeSeason, setActiveSeason] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
 
   const [activeTab, setActiveTab] = useState('current-season');
 
-  useEffect(() => {
-    fetchData();
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [playersResult, sessionsResult, sessionPlayersResult, seasonResult] = await Promise.all([
+        supabase.from('players').select('*'),
+        supabase.from('sessions').select('*').order('created_at', { ascending: false }),
+        supabase.from('session_players').select('*'),
+        supabase.from('seasons').select('*').eq('is_active', true).limit(1).maybeSingle(),
+      ]);
+
+      const queryError = [playersResult.error, sessionsResult.error, sessionPlayersResult.error, seasonResult.error].find(Boolean);
+      if (queryError) throw queryError;
+
+      setPlayers((playersResult.data || []) as Player[]);
+      setSessions((sessionsResult.data || []) as Session[]);
+      setSessionPlayers((sessionPlayersResult.data || []) as SessionPlayer[]);
+      setActiveSeason((seasonResult.data || null) as Season | null);
+    } catch (queryError) {
+      console.error('Không thể tải leaderboard', queryError);
+      setError('Không thể tải bảng xếp hạng. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const { data: pData } = await supabase.from('players').select('*');
-    const { data: sData } = await supabase.from('sessions').select('*').order('created_at', { ascending: false });
-    const { data: spData } = await supabase.from('session_players').select('*');
-    const { data: seasonData } = await supabase.from('seasons').select('*').eq('is_active', true).limit(1).maybeSingle();
-
-    setPlayers(pData || []);
-    setSessions(sData || []);
-    setSessionPlayers(spData || []);
-    setActiveSeason(seasonData || null);
-
-    setLoading(false);
-  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchData]);
 
   const getLeaderboardData = () => {
-    let currentSessions: any[] = [];
-    let subtitle = '';
+    let currentSessions: Session[];
+    let subtitle: string;
 
     if (activeTab === 'recent-table') {
       const recentSession = sessions[0];
@@ -70,7 +95,7 @@ export default function LeaderboardPage() {
     }
     const previousSp = sessionPlayers.filter(sp => previousSessionIds.includes(sp.session_id));
 
-    const calcStats = (spList: any[]) => {
+    const calcStats = (spList: SessionPlayer[]): LeaderboardStat[] => {
       const stats = players.map(p => {
         const pSessions = spList.filter(sp => sp.player_id === p.id);
         if (pSessions.length === 0) return null;
@@ -81,7 +106,8 @@ export default function LeaderboardPage() {
           totalProfit,
           gamesPlayed: pSessions.length
         };
-      }).filter(Boolean) as any[];
+      }).filter((stat): stat is Omit<LeaderboardStat, 'rank' | 'rankChange' | 'profitPercent' | 'hasPrevious'> => stat !== null)
+        .map(stat => ({ ...stat, rank: 0, rankChange: 0, profitPercent: 0, hasPrevious: false }));
       stats.sort((a, b) => b.totalProfit - a.totalProfit);
       stats.forEach((s, index) => s.rank = index + 1);
       return stats;
@@ -125,7 +151,7 @@ export default function LeaderboardPage() {
     return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}&backgroundColor=${bg}&radius=50`;
   };
 
-  const PodiumItem = ({ player, rank }: { player: any, rank: number }) => {
+  const PodiumItem = ({ player, rank }: { player: LeaderboardStat | undefined, rank: number }) => {
     if (!player) return <div className="flex-1" />;
 
     const isFirst = rank === 1;
@@ -186,7 +212,26 @@ export default function LeaderboardPage() {
   };
 
   const renderLeaderboard = () => {
-    if (loading) return <div className="py-20 text-center"><Spin size="large" /></div>;
+    if (loading) {
+      return (
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3" role="status" aria-live="polite">
+          <Spin size="large" />
+          <span className="text-sm text-gray-400">Đang tải bảng xếp hạng...</span>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <Alert
+          type="error"
+          showIcon
+          message="Không thể tải dữ liệu"
+          description={error}
+          action={<Button type="link" onClick={() => void fetchData()}>Thử lại</Button>}
+        />
+      );
+    }
 
     const { stats: leaderboard, subtitle } = getLeaderboardData();
 
@@ -197,7 +242,7 @@ export default function LeaderboardPage() {
         </div>
 
         {leaderboard.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">Chưa có dữ liệu thành tích.</div>
+          <Empty className="py-8" description="Chưa có dữ liệu thành tích" />
         ) : (
           <div className="relative">
             {/* Podium Area */}
@@ -278,23 +323,25 @@ export default function LeaderboardPage() {
   };
 
   const tabItems = [
-    { key: 'recent-table', label: 'Gần Nhất' },
+    { key: 'recent-table', label: 'Gần nhất' },
     { key: 'current-season', label: 'Season' },
-    { key: 'all-time', label: 'All-time' }
+    { key: 'all-time', label: 'Toàn thời gian' }
   ];
 
   return (
     <div className="animate-fade-in pb-10">
       <div className="sticky top-16 z-30 py-2 -mx-4 px-4 mb-[12px]" style={{ background: 'radial-gradient(circle at top, #1a1d2e 0%, #0f111a 100%) fixed' }}>
-        <div className="flex bg-black/20 rounded-full p-1 border border-white/5 shadow-lg max-w-sm mx-auto">
+        <div className="flex bg-black/20 rounded-full p-1 border border-white/5 shadow-lg max-w-sm mx-auto" role="group" aria-label="Chế độ xem bảng xếp hạng">
           {tabItems.map(tab => (
-            <div
+            <button
+              type="button"
               key={tab.key}
-              className={`flex-1 text-center py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all duration-300 ${activeTab === tab.key ? 'bg-white text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
+              aria-pressed={activeTab === tab.key}
+              className={`flex-1 text-center py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400 ${activeTab === tab.key ? 'bg-white text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
-            </div>
+            </button>
           ))}
         </div>
       </div>
